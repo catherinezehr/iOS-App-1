@@ -9,44 +9,70 @@
 
 import Foundation
 
-struct Environment
-{
-    static var APIkey: String
-    {
-        guard let key = Bundle.main.object(forInfoDictionaryKey: "GOLF_API_KEY") as String
-        else
-        {
-            fatalError("missing API key")
-        }
-        return key
-    }
-}
-
 class GolfAPI
 {
-    func fetchCoursesFromAPI() async throws -> [Course]
+    
+    func fetchFromAPI() async throws -> [Course]
+
+        {
+            //do not want to hardcode api key because of security reasons
+            //instead store in config file and then access from there
+            guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+                    let config = NSDictionary(contentsOfFile: path) as? [String: Any],
+                    let apiKey = config["API_KEY"] as? String
+            else //need an else statement anytime you use guard
+            {
+                throw FetchError.invalidAPIKey
+            }
+
+            //set up the url for the api
+            //use guard and else error in case the url is invalid
+            guard let url = URL(string:"https://api.golfcourseapi.com/v1/courses")
+            else
+            {
+                throw FetchError.invalidUrl
+            }
+
+            //api is protected by key so need to use http headers to authenticate
+            //golf api stated you need to "include a request header in the format 'Authorization: Key {api_key}'
+
+            var request = URLRequest(url: url)
+            request.setValue("Key \(apiKey)", forHTTPHeaderField: "Authorization")
+
+            let (data, _) = try await URLSession.shared.data(for: request)
+
+            let decoded = try JSONDecoder().decode(GolfCourses.self, from: data)
+
+            return decoded.courses
+
+        }
+
+    enum FetchError: Error
     {
-        //get the API key using the struct to get it from the hidden file
-        let APIkey = Environment.APIkey
-        //can use String interpolation to include key in link
-        let url = URL(string: "https://api.golfcourseapi.com/v1/courses?api_key=\(APIkey)")
-        let (data, response) = try await URLSession.shared.data(from: url)
-        let coursesList = try JSONDecoder().decode([Course].self, from: data)
-        return coursesList
+        case invalidUrl
+        case invalidAPIKey
     }
 
     struct GolfCourses: Decodable
     {
-        let results: [Course]
+        let courses: [Course]
     }
 
     struct Course: Decodable
     {
         let club_name: String
         let course_name: String
-        let address: String
+        let location: Location
     }
     
+    struct Location: Decodable
+    {
+        let address: String
+        let city: String
+        let state: String
+        let country: String
+    }
+        
 }
 
 
