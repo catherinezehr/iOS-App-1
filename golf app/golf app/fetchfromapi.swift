@@ -60,6 +60,7 @@ class GolfAPI
 
     struct Course: Decodable
     {
+        let id: Int
         let club_name: String
         let course_name: String
         let location: Location
@@ -67,10 +68,10 @@ class GolfAPI
     
     struct Location: Decodable
     {
-        let address: String
-        let city: String
-        let state: String
-        let country: String
+        let address: String?
+        let city: String?
+        let state: String?
+        let country: String?
     }
         
 }
