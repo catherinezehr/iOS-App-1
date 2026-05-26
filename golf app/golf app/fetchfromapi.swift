@@ -8,11 +8,12 @@
 //need to import API key from hidden file
 
 import Foundation
+import SwiftUI
 
 class GolfAPI
 {
     
-    func fetchFromAPI() async throws -> [Course]
+    func fetchFromAPI(searchTerm: String) async throws -> [Course]
 
         {
             //do not want to hardcode api key because of security reasons
@@ -24,10 +25,13 @@ class GolfAPI
             {
                 throw FetchError.invalidAPIKey
             }
+            
+            //change the term entered by the user to ensure the url isn't broken if they add spaces
+            let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchTerm
 
             //set up the url for the api
             //use guard and else error in case the url is invalid
-            guard let url = URL(string:"https://api.golfcourseapi.com/v1/courses")
+            guard let url = URL(string:"https://api.golfcourseapi.com/v1/search?search_query=\(encoded)")
             else
             {
                 throw FetchError.invalidUrl
@@ -35,7 +39,6 @@ class GolfAPI
 
             //api is protected by key so need to use http headers to authenticate
             //golf api stated you need to "include a request header in the format 'Authorization: Key {api_key}'
-
             var request = URLRequest(url: url)
             request.setValue("Key \(apiKey)", forHTTPHeaderField: "Authorization")
 
@@ -64,6 +67,7 @@ class GolfAPI
         let club_name: String
         let course_name: String
         let location: Location
+        let tees: Tees?
     }
     
     struct Location: Decodable
@@ -72,6 +76,25 @@ class GolfAPI
         let city: String?
         let state: String?
         let country: String?
+    }
+    
+    struct Tees: Decodable
+    {
+        let male: [TeeInfo]?
+        let female: [TeeInfo]?
+    }
+    
+    struct TeeInfo: Decodable
+    {
+        let tee_name: String
+        let holes: [CourseInfo]
+    }
+    
+    struct CourseInfo: Decodable
+    {
+        let par: Int
+        let yardage: Int
+        let handicap: Int
     }
         
 }

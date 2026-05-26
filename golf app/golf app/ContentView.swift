@@ -14,6 +14,7 @@ struct ContentView: View
     @State private var courses: [GolfAPI.Course] = []
     @State private var isLoading = false
     @State private var error: String?
+    @State var entry: String = ""
     
     
     //use the body to describle the design of the app
@@ -43,18 +44,24 @@ struct ContentView: View
                         List(courses, id: \.id)
                         {
                             course in
-                            VStack
+                            NavigationLink(destination: CourseDetailView(course: course))
                             {
-                                Text(course.club_name).font(.headline)
-                                Text(course.course_name).font(.headline)
-                                Text(course.location.state ?? "unknown location").font(.caption)
+                                VStack(alignment: .leading)
+                                {
+                                    Text(course.club_name).font(.headline)
+                                    Text(course.course_name).font(.subheadline)
+                                    Text(course.location.state ?? "unknown location").font(.caption)
+                                    Image(systemName: "figure.golf").imageScale(.small).foregroundColor(Color.green)
+                                }
                             }
                         }
-                        
                     }
+                        
+                        
+                
                 }
             }
-            .task
+            .task(id: entry)
             {
                 //for debugging:
                 print("task started yippee")
@@ -63,7 +70,7 @@ struct ContentView: View
                     print("error boo: \(error)")
                 }
             }
-        }
+        }.searchable(text: $entry)
     }
     
     //create a function to actually call the created api class and retrieve the data
@@ -72,13 +79,94 @@ struct ContentView: View
     {
         //for debugging
         print("started loading courses YIPPEE")
+        guard !entry.isEmpty
+        else
+        {
+            courses = []
+            return
+        }
         isLoading = true //when function is first called, it is loading from api
         
         defer {isLoading = false} //at the very end, once the function has been executed, the loading is done
         
         //call the api class
-        do {courses = try await api.fetchFromAPI()}
+        do {courses = try await api.fetchFromAPI(searchTerm: entry)}
         catch {throw error}
+    }
+    
+    
+    struct CourseDetailView: View
+    {
+        let course: GolfAPI.Course
+        
+        //before printing out the individual tees for each course, want to degroup them by gender and ensure no overlap, since often the male/female tees are the same tee boxes, so listing them twice is unnecessary
+        var allTees: [GolfAPI.TeeInfo]
+        {
+            var all_tees = (course.tees?.male ?? []) + (course.tees?.female ?? [])
+            var s = Set<String>()
+            all_tees.forEach {tee in
+                s.insert(tee.tee_name)}
+            var placeholder = 0
+            all_tees.forEach {tee in
+                if(s.contains(tee.tee_name))
+                {
+                    s.remove(tee.tee_name)
+                    placeholder += 1
+                }
+                else
+                {
+                    all_tees.remove(at: placeholder)
+                }
+            }
+            return all_tees
+        }
+        
+        var body: some View
+        {
+            VStack(alignment: .leading)
+            {
+                Text(course.club_name)
+                    .font(.headline)
+                Text(course.course_name).font(.subheadline)
+                VStack(alignment: .leading)
+                {
+                    ForEach(allTees, id: \.tee_name)
+                    { tee in
+                        NavigationLink(destination: MoreDetailView(tee:tee))
+                        {
+                            Text(tee.tee_name).font(.caption)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    struct MoreDetailView: View
+    {
+        let tee: GolfAPI.TeeInfo
+        
+        var body: some View
+        {
+            VStack(alignment: .leading)
+            {
+                Text(tee.tee_name).font(.headline)
+                VStack(alignment: .leading)
+                {
+                    ForEach(Array(tee.holes.enumerated()), id: \.offset)
+                    {
+                        index, hole in
+                                VStack(alignment: .leading)
+                                {
+                                    Text("hole number: \(index+1)")
+                                    Text(String(hole.par)).font(.subheadline)
+                                    Text(String(hole.yardage)).font(.subheadline)
+                                    Text(String(hole.handicap)).font(.subheadline)
+                                }
+                    }
+                }
+            }
+        }
     }
     
 }
