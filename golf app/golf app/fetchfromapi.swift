@@ -76,6 +76,8 @@ class GolfAPI
         let city: String?
         let state: String?
         let country: String?
+        let latitude: Double?
+        let longitude: Double?
     }
     
     struct Tees: Decodable

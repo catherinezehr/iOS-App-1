@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import MapKit
+import CoreLocation
+import GeoToolbox
 
 struct ContentView: View
 {
@@ -121,13 +124,26 @@ struct ContentView: View
             return all_tees
         }
         
+        @State private var position: MapCameraPosition
+        init(course: GolfAPI.Course)
+        {
+            self.course = course
+            self._position = State(initialValue: MapKit.MapCameraPosition.region(MKCoordinateRegion(center: CLLocationCoordinate2D(
+                latitude: course.location.latitude ?? 0.0,
+                longitude: course.location.longitude ?? 0.0
+            ), span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005))))
+        }
+        
         var body: some View
         {
             VStack(alignment: .leading)
             {
+                Map(position: $position)
+                {
+                }
+                .mapStyle(.imagery)
                 Text(course.club_name)
                     .font(.headline)
-                Text(course.course_name).font(.subheadline)
                 VStack(alignment: .leading)
                 {
                     ForEach(allTees, id: \.tee_name)
@@ -168,5 +184,4 @@ struct ContentView: View
             }
         }
     }
-    
 }
