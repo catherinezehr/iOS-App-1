@@ -18,7 +18,7 @@ class CourseHoleInfo
     {
         //create the bounding square around the course
         let delta = 0.01
-        let boundingbox = "\(latitude-delta), \(longitude-delta), \(latitude+delta), \(longitude+delta)"
+        let boundingbox = "\(latitude-delta),\(longitude-delta),\(latitude+delta),\(longitude+delta)"
         
         //going to collect data as a json for parsing
         let query = """

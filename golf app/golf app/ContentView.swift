@@ -192,12 +192,50 @@ struct ContentView: View
         }
     }
     
+    struct HoleDetailView: View
+    {
+        let hole: GolfAPI.CourseInfo
+        let index: Int
+        let coords: (lat: Double, lon: Double)?
+        
+        @State private var position: MapCameraPosition
+        init(hole: GolfAPI.CourseInfo, index: Int, coords: (lat: Double, lon: Double)?)
+        {
+            self.hole = hole
+            self.index = index
+            self.coords = coords
+            self._position = State(initialValue: MapKit.MapCameraPosition.region(MKCoordinateRegion(center: CLLocationCoordinate2D(
+                latitude: coords?.lat ?? 0.0,
+                longitude: coords?.lon ?? 0.0
+            ), span: MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001))))
+        }
+        
+        var body: some View
+        {
+            VStack(alignment: .leading)
+            {
+                let teeBox = CLLocationCoordinate2D(latitude: coords?.lat ?? 0.0, longitude: coords?.lon ?? 0.0)
+                Map(position: $position)
+                {
+                    Marker("Tee Box", coordinate: teeBox)
+                }
+                .mapStyle(.hybrid(elevation: .realistic))
+                Text(String(index+1)).font(.headline)
+                Text(String(hole.par)).font(.headline)
+                Text(String(hole.yardage)).font(.headline)
+            }
+        }
+    }
+    
     struct MoreDetailView: View
     {
         let tee: GolfAPI.TeeInfo
         let courseLocation: GolfAPI.Location
         
         private let osm = CourseHoleInfo()
+        @State private var osmData: CourseHoleInfo.OSMResponse?
+        @State private var osmLoading = true
+        @State private var fetchTask: Task<Void, Never>?
         
         var body: some View
         {
@@ -209,6 +247,11 @@ struct ContentView: View
                     ForEach(Array(tee.holes.enumerated()), id: \.offset)
                     {
                         index, hole in
+                        let holeNumber = index + 1
+                        let coords = osmData.flatMap {osm.teeCoordinates(for: holeNumber, in: $0)}
+                        
+                        NavigationLink(destination: HoleDetailView(hole: hole, index: index, coords: coords))
+                            {
                                 VStack(alignment: .leading)
                                 {
                                     Text("hole number: \(index+1)")
@@ -216,34 +259,23 @@ struct ContentView: View
                                     Text(String(hole.yardage)).font(.subheadline)
                                     Text(String(hole.handicap ?? 0)).font(.subheadline)
                                 }
+                            }
                     }
                 }
-            }.task {
-                do {
-                    let osmData = try await osm.fetchCourseInfo(
-                        latitude: courseLocation.latitude ?? 0.0,
-                        longitude: courseLocation.longitude ?? 0.0
-                    )
-                    
-                    // NEW: print everything we got
-                    print("Total OSM elements: \(osmData.elements.count)")
-                    for element in osmData.elements {
-                    let golfType = element.tags?["golf"] ?? "unknown"
-                    let ref = element.tags?["ref"] ?? "no ref"
-                    let name = element.tags?["name"] ?? "no name"
-                    print("  type=\(golfType) ref=\(ref) name=\(name) points=\(element.geometry?.count ?? 0)")
+            }.onAppear {
+                fetchTask = Task {
+                    do {
+                        osmData = try await osm.fetchCourseInfo(
+                            latitude: courseLocation.latitude ?? 0.0,
+                            longitude: courseLocation.longitude ?? 0.0
+                        )
+                    } catch {
+                        print("OSM error: \(error)")
                     }
-                    
-                    for hole in 1...18 {
-                        if let coords = osm.teeCoordinates(for: hole, in: osmData) {
-                            print("Hole \(hole) tee: \(coords.lat), \(coords.lon)")
-                        } else {
-                            print("Hole \(hole): no tee data found")
-                        }
-                    }
-                } catch {
-                    print("OSM error: \(error)")
                 }
+            }
+            .onDisappear {
+                fetchTask?.cancel()
             }
         }
     }
