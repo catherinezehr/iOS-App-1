@@ -10,6 +10,30 @@ import MapKit
 import CoreLocation
 import GeoToolbox
 
+
+//set up different tabs of the apps
+//struct TabView: View
+//{
+//    var body: some View
+//    {
+//        HomeView().tabItem{Label("Home"), systemImage: "star.fill"}
+//    }
+//}
+
+struct HomeView: View
+{
+    var body: some View
+    {
+        VStack
+        {
+            Image("golf")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+            Text("click 'start' to begin viewing courses!").font(.headline).foregroundColor(.white)
+        }
+    }
+}
+
 struct ContentView: View
 {
     private let api = GolfAPI()
@@ -158,7 +182,7 @@ struct ContentView: View
                 {
                     ForEach(allTees, id: \.tee_name)
                     { tee in
-                        NavigationLink(destination: MoreDetailView(tee:tee))
+                        NavigationLink(destination: MoreDetailView(tee:tee, courseLocation:course.location))
                         {
                             Text(tee.tee_name).font(.caption)
                         }
@@ -171,10 +195,13 @@ struct ContentView: View
     struct MoreDetailView: View
     {
         let tee: GolfAPI.TeeInfo
+        let courseLocation: GolfAPI.Location
+        
+        private let osm = CourseHoleInfo()
         
         var body: some View
         {
-            VStack(alignment: .leading)
+            ScrollView
             {
                 Text(tee.tee_name).font(.headline)
                 VStack(alignment: .leading)
@@ -190,6 +217,32 @@ struct ContentView: View
                                     Text(String(hole.handicap ?? 0)).font(.subheadline)
                                 }
                     }
+                }
+            }.task {
+                do {
+                    let osmData = try await osm.fetchCourseInfo(
+                        latitude: courseLocation.latitude ?? 0.0,
+                        longitude: courseLocation.longitude ?? 0.0
+                    )
+                    
+                    // NEW: print everything we got
+                    print("Total OSM elements: \(osmData.elements.count)")
+                    for element in osmData.elements {
+                    let golfType = element.tags?["golf"] ?? "unknown"
+                    let ref = element.tags?["ref"] ?? "no ref"
+                    let name = element.tags?["name"] ?? "no name"
+                    print("  type=\(golfType) ref=\(ref) name=\(name) points=\(element.geometry?.count ?? 0)")
+                    }
+                    
+                    for hole in 1...18 {
+                        if let coords = osm.teeCoordinates(for: hole, in: osmData) {
+                            print("Hole \(hole) tee: \(coords.lat), \(coords.lon)")
+                        } else {
+                            print("Hole \(hole): no tee data found")
+                        }
+                    }
+                } catch {
+                    print("OSM error: \(error)")
                 }
             }
         }
