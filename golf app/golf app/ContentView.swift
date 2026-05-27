@@ -18,6 +18,7 @@ struct ContentView: View
     @State private var isLoading = false
     @State private var error: String?
     @State var entry: String = ""
+    @State private var debouncedEntry: String = ""
     
     
     //use the body to describle the design of the app
@@ -64,7 +65,16 @@ struct ContentView: View
                 
                 }
             }
-            .task(id: entry)
+            .searchable(text: $entry)
+            .onChange(of: entry)
+            {
+                _, newValue in Task {
+                    try? await Task.sleep(for: .milliseconds(200))
+                    guard !Task.isCancelled else {return}
+                    debouncedEntry = newValue
+                }
+            }
+            .task(id: debouncedEntry)
             {
                 //for debugging:
                 print("task started yippee")
@@ -73,7 +83,7 @@ struct ContentView: View
                     print("error boo: \(error)")
                 }
             }
-        }.searchable(text: $entry)
+        }
     }
     
     //create a function to actually call the created api class and retrieve the data
@@ -82,11 +92,11 @@ struct ContentView: View
     {
         //for debugging
         print("started loading courses YIPPEE")
-        guard !entry.isEmpty
+        guard debouncedEntry.count >= 3
         else
         {
-            courses = []
-            return
+                courses = []
+                return
         }
         isLoading = true //when function is first called, it is loading from api
         
@@ -141,7 +151,7 @@ struct ContentView: View
                 Map(position: $position)
                 {
                 }
-                .mapStyle(.imagery)
+                .mapStyle(.hybrid(elevation: .realistic, pointsOfInterest: .including([.golf])))
                 Text(course.club_name)
                     .font(.headline)
                 VStack(alignment: .leading)
@@ -177,7 +187,7 @@ struct ContentView: View
                                     Text("hole number: \(index+1)")
                                     Text(String(hole.par)).font(.subheadline)
                                     Text(String(hole.yardage)).font(.subheadline)
-                                    Text(String(hole.handicap)).font(.subheadline)
+                                    Text(String(hole.handicap ?? 0)).font(.subheadline)
                                 }
                     }
                 }

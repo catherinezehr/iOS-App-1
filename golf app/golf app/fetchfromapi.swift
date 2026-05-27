@@ -96,7 +96,7 @@ class GolfAPI
     {
         let par: Int
         let yardage: Int
-        let handicap: Int
+        let handicap: Int?
     }
         
 }
