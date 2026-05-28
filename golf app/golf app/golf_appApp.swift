@@ -7,7 +7,7 @@ struct GolfApp: App
     {
         WindowGroup
         {
-            ContentView()
+            TabPage()
         }
     }
 }

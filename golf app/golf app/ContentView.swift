@@ -11,25 +11,48 @@ import CoreLocation
 import GeoToolbox
 
 
-//set up different tabs of the apps
-//struct TabView: View
-//{
-//    var body: some View
-//    {
-//        HomeView().tabItem{Label("Home"), systemImage: "star.fill"}
-//    }
-//}
+//set up homepage with different tabs of the apps
+struct TabPage: View
+{
+    
+    @State private var selectedTab: Tabs = .homePage
+    
+    var body: some View
+    {
+        TabView(selection: $selectedTab)
+        {
+            Tab("Find Course", systemImage: "figure.golf", value: .findCourse)
+            {
+                ContentView()
+            }
+            Tab("Home Screen", systemImage: "star.fill", value: .homePage)
+            {
+                HomeScreen()
+            }
+        }
+    }
+}
 
-struct HomeView: View
+enum Tabs: Hashable
+{
+    case findCourse
+    case homePage
+}
+
+struct HomeScreen: View
 {
     var body: some View
     {
         VStack
         {
-            Image("golf")
+            Text("Golf Course Finder")
+                .font(Font.custom("Koh Santepheap", size: 40))
+                .multilineTextAlignment(.center)
+                .foregroundColor(.black)
+                .frame(width: 402, height: 67, alignment: .top)
+            Image("golf image")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-            Text("click 'start' to begin viewing courses!").font(.headline).foregroundColor(.white)
         }
     }
 }
