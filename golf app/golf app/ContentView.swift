@@ -43,18 +43,20 @@ struct HomeScreen: View
 {
     var body: some View
     {
-        VStack
+        ZStack(alignment: .bottom)
         {
-            Text("Golf Course Finder")
-                .font(Font.custom("Koh Santepheap", size: 40))
-                .multilineTextAlignment(.center)
-                .foregroundColor(.black)
-                .frame(width: 402, height: 67, alignment: .top)
             Image("golf image")
                 .resizable()
-                .aspectRatio(contentMode: .fit)
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
         }
     }
+}
+
+#Preview
+{
+    HomeScreen()
 }
 
 struct ContentView: View
@@ -193,23 +195,48 @@ struct ContentView: View
         
         var body: some View
         {
-            VStack(alignment: .leading)
+            ZStack
             {
-                Map(position: $position)
+                Image("background")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                
+                VStack
                 {
-                }
-                .mapStyle(.hybrid(elevation: .realistic, pointsOfInterest: .including([.golf])))
-                Text(course.club_name)
-                    .font(.headline)
-                VStack(alignment: .leading)
-                {
-                    ForEach(allTees, id: \.tee_name)
-                    { tee in
-                        NavigationLink(destination: MoreDetailView(tee:tee, courseLocation:course.location))
-                        {
-                            Text(tee.tee_name).font(.caption)
-                        }
+                    Map(position: $position)
+                    {
                     }
+                    .mapStyle(.hybrid(elevation: .realistic, pointsOfInterest: .including([.golf])))
+                    .frame(height: 300)
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white, lineWidth: 3))
+                    
+                    VStack(alignment: .leading)
+                    {
+                        HStack
+                        {
+                            VStack
+                            {
+                                Text(course.club_name)
+                                    .font(.system(.headline, design: .monospaced))
+                                VStack(alignment: .leading)
+                                {
+                                    ForEach(allTees, id: \.tee_name)
+                                    { tee in
+                                        NavigationLink(destination: MoreDetailView(tee:tee, courseLocation:course.location))
+                                        {
+                                            Text(tee.tee_name).font(.system(.caption, design: .monospaced))
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer()
+                        }
+                        Spacer()
+                    }
+                    .padding()
                 }
             }
         }
@@ -235,17 +262,41 @@ struct ContentView: View
         
         var body: some View
         {
-            VStack(alignment: .leading)
+            ZStack
             {
-                let teeBox = CLLocationCoordinate2D(latitude: coords?.lat ?? 0.0, longitude: coords?.lon ?? 0.0)
-                Map(position: $position)
+                Image("background")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                VStack
                 {
-                    Marker("Tee Box", coordinate: teeBox)
+                    let teeBox = CLLocationCoordinate2D(latitude: coords?.lat ?? 0.0, longitude: coords?.lon ?? 0.0)
+                    Map(position: $position)
+                    {
+                        Marker("Tee Box", coordinate: teeBox)
+                    }
+                    .mapStyle(.hybrid(elevation: .realistic))
+                    .frame(height: 300)
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white, lineWidth: 3))
+                    
+                    VStack(alignment: .leading)
+                    {
+                        HStack
+                        {
+                            VStack
+                            {
+                                Text("Hole Number: \(index+1)").font(.system(.headline, design: .monospaced))
+                                Text("Par: \(hole.par)").font(.system(.headline, design: .monospaced))
+                                Text("Yardage: \(hole.yardage)").font(.system(.headline, design: .monospaced))
+                            }
+                            Spacer()
+                        }
+                        Spacer()
+                    }
+                    .padding()
                 }
-                .mapStyle(.hybrid(elevation: .realistic))
-                Text(String(index+1)).font(.headline)
-                Text(String(hole.par)).font(.headline)
-                Text(String(hole.yardage)).font(.headline)
             }
         }
     }
